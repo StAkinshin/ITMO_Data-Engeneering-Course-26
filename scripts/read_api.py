@@ -17,11 +17,10 @@ from vk_api.exceptions import ApiError, VkApiError
 load_dotenv()
 
 VK_TOKEN = os.getenv("VK_SERVICE_TOKEN")
-CORE_PATH = os.getenv("CORE_PATH")
-
 if not VK_TOKEN:
     raise ValueError("Не найден VK_SERVICE_TOKEN в файле .env")
 
+CORE_PATH = os.getenv("CORE_PATH")
 if not CORE_PATH:
     raise ValueError("Не найден CORE_PATH в файле .env")
 
@@ -448,3 +447,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

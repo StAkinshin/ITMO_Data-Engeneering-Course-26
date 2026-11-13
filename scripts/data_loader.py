@@ -10,7 +10,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DATASET_URL = os.getenv("DATASET_URL")
+if not DATASET_URL:
+    raise ValueError("Не найден DATASET_URL в файле .env")
+
 CORE_PATH = os.getenv("CORE_PATH")
+if not CORE_PATH:
+    raise ValueError("Не найден CORE_PATH в файле .env")
 
 DATA_PATH = os.path.join(CORE_PATH, "data")
 OUTPUT_FILE = os.path.join(DATA_PATH, "VK_dataset.parquet")
@@ -22,9 +27,6 @@ OUTPUT_FILE = os.path.join(DATA_PATH, "VK_dataset.parquet")
 
 def load_dataset():
     """Загружает датасет по ссылке с Google Drive."""
-
-    if not DATASET_URL:
-        raise ValueError("Не найдена ссылка DATASET_URL в файле .env")
 
     try:
         print("Загрузка датасета с Google Drive...")
