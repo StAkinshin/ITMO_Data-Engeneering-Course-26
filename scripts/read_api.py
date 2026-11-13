@@ -17,11 +17,10 @@ from vk_api.exceptions import ApiError, VkApiError
 load_dotenv()
 
 VK_TOKEN = os.getenv("VK_SERVICE_TOKEN")
-CORE_PATH = os.getenv("CORE_PATH")
-
 if not VK_TOKEN:
     raise ValueError("Не найден VK_SERVICE_TOKEN в файле .env")
 
+CORE_PATH = os.getenv("CORE_PATH")
 if not CORE_PATH:
     raise ValueError("Не найден CORE_PATH в файле .env")
 
@@ -30,9 +29,9 @@ INPUT_FILENAME = os.path.join(DATA_PATH, "queries.json")
 OUTPUT_FILE = os.path.join(DATA_PATH, "VK_dataset.csv")
 LOG_FILE = os.path.join(DATA_PATH, "vk_parser.log")
 
-MAX_POSTS_PER_QUERY = 100
-DAYS_TO_CHECK = 365
-REQUEST_COUNT = 200
+MAX_POSTS_PER_QUERY = 200
+DAYS_TO_CHECK = 2000
+REQUEST_COUNT = 50
 REQUEST_DELAY = 0.5
 
 COLUMNS = [
@@ -232,12 +231,6 @@ def search_posts(vk, query, city, region, limit_date):
                 f"items={len(items)}"
             )
 
-            if page == 1 and items:
-                logger.info(
-                    f"Пример полученного поста: "
-                    f"{str(items[0])[:500]}"
-                )
-
             if not items:
                 logger.warning(
                     "VK вернул пустой список постов. "
@@ -261,14 +254,6 @@ def search_posts(vk, query, city, region, limit_date):
                 if post_data is None:
                     continue
 
-                if not post_data["text"].strip():
-                    stats["empty_text"] += 1
-                    continue
-
-                if post_data["link"] in seen_links:
-                    stats["duplicates"] += 1
-                    continue
-
                 results.append(post_data)
                 seen_links.add(post_data["link"])
 
@@ -289,9 +274,9 @@ def search_posts(vk, query, city, region, limit_date):
 
             next_from = response.get("next_from")
 
-            if not next_from:
+            if not next_from or next_from == start_from:
                 logger.info(
-                    "VK не вернул next_from. "
+                    "VK не вернул новый next_from. "
                     "Дальнейших страниц нет."
                 )
                 break
@@ -325,9 +310,6 @@ def search_posts(vk, query, city, region, limit_date):
     logger.info("-" * 60)
     logger.info(f"РЕЗУЛЬТАТ ЗАПРОСА: {query}")
     logger.info(f"Получено от VK: {stats['received']}")
-    logger.info(f"Старых постов: {stats['old_posts']}")
-    logger.info(f"Постов без текста: {stats['empty_text']}")
-    logger.info(f"Дубликатов: {stats['duplicates']}")
     logger.info(f"Добавлено: {stats['accepted']}")
     logger.info("-" * 60)
 
@@ -448,3 +430,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

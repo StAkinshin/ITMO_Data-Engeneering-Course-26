@@ -29,3 +29,4 @@ os.makedirs(DATA_PATH, exist_ok = True)
 
 with open(OUTPUT_FILE, "w", encoding = "utf-8") as f:
     json.dump(queries, f, ensure_ascii = False, indent = 4)
+    
