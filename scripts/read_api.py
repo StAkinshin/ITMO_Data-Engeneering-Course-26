@@ -1,4 +1,3 @@
-
 import os
 import json
 import time
@@ -39,6 +38,8 @@ REQUEST_DELAY = 0.5
 COLUMNS = [
     "id",
     "search_query",
+    "city",
+    "region",
     "source_type",
     "date",
     "author_link",
@@ -80,30 +81,28 @@ def load_queries():
     with open(INPUT_FILENAME, "r", encoding="utf-8") as file:
         data = json.load(file)
 
-    # Поддержка формата {"queries": [...]}
-    if isinstance(data, dict):
-        data = data.get("queries", [])
-
     if not isinstance(data, list):
         raise ValueError(
-            "JSON должен содержать список запросов "
-            "или объект с ключом 'queries'."
+            "JSON должен содержать список запросов."
         )
 
     queries = []
 
     for item in data:
-        if isinstance(item, str):
-            query = item
-
-        elif isinstance(item, dict):
+        if isinstance(item, dict):
             query = item.get("query", "")
+            city = item.get("city", "")
+            region = item.get("region", "")
 
         else:
             continue
 
         if query and str(query).strip():
-            queries.append(str(query).strip())
+            queries.append({
+                "query": str(query).strip(),
+                "city": city,
+                "region": region
+            })
 
     if not queries:
         raise ValueError(
@@ -124,7 +123,7 @@ def connect_vk():
 
     try:
         session = vk_api.VkApi(
-            token = VK_TOKEN,
+            token=VK_TOKEN,
             api_version="5.199"
         )
 
@@ -142,7 +141,7 @@ def connect_vk():
 # ФОРМАТИРОВАНИЕ ПОСТА
 # ============================================================
 
-def format_post(post, query):
+def format_post(post, query, city, region):
     """Приводит пост к формату датасета."""
 
     owner_id = post.get("owner_id")
@@ -159,6 +158,8 @@ def format_post(post, query):
     return {
         "id": f"{owner_id}_{post_id}",
         "search_query": query,
+        "city": city,
+        "region": region,
         "source_type": "newsfeed",
         "date": datetime.fromtimestamp(
             post["date"]
@@ -173,7 +174,7 @@ def format_post(post, query):
 # ПОИСК ПОСТОВ
 # ============================================================
 
-def search_posts(vk, query, limit_date):
+def search_posts(vk, query, city, region, limit_date):
     """Ищет посты и подробно логирует процесс."""
 
     results = []
@@ -195,7 +196,6 @@ def search_posts(vk, query, limit_date):
     logger.info("=" * 60)
 
     while len(results) < MAX_POSTS_PER_QUERY:
-
         page += 1
 
         try:
@@ -248,14 +248,15 @@ def search_posts(vk, query, limit_date):
             stats["received"] += len(items)
 
             for post in items:
-
                 post_date = datetime.fromtimestamp(post["date"])
 
                 if post_date < limit_date:
                     stats["old_posts"] += 1
                     continue
 
-                post_data = format_post(post, query)
+                post_data = format_post(
+                    post, query, city, region
+                )
 
                 if post_data is None:
                     continue
@@ -346,24 +347,23 @@ def main():
     try:
         queries = load_queries()
         vk = connect_vk()
-
     except Exception as error:
         logger.critical(f"Не удалось начать сбор: {error}")
         return
-
     limit_date = datetime.now() - timedelta(
         days=DAYS_TO_CHECK
     )
-
     logger.info(
         f"Период сбора: с {limit_date.strftime('%Y-%m-%d')} "
         f"по {datetime.now().strftime('%Y-%m-%d')}"
     )
-
     all_posts = []
     seen_links = set()
 
-    for index, query in enumerate(queries, 1):
+    for index, query_data in enumerate(queries, 1):
+        query = query_data["query"]
+        city = query_data["city"]
+        region = query_data["region"]
 
         logger.info(
             f"\nЗАПРОС {index}/{len(queries)}"
@@ -372,6 +372,8 @@ def main():
         posts = search_posts(
             vk=vk,
             query=query,
+            city=city,
+            region=region,
             limit_date=limit_date
         )
 
@@ -446,4 +448,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
