@@ -20,7 +20,7 @@ VK_TOKEN = os.getenv("VK_SERVICE_TOKEN")
 CORE_PATH = os.getenv("CORE_PATH")
 
 if not VK_TOKEN:
-    raise ValueError("Не найден VK_TOKEN в файле .env")
+    raise ValueError("Не найден VK_SERVICE_TOKEN в файле .env")
 
 if not CORE_PATH:
     raise ValueError("Не найден CORE_PATH в файле .env")

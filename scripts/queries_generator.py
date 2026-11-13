@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 CORE_PATH = os.getenv("CORE_PATH")
+
+if not CORE_PATH:
+    raise ValueError("Не найден CORE_PATH в файле .env")
+
 DATA_PATH = os.path.join(CORE_PATH, "data")
 CITIES_PATH = os.path.join(DATA_PATH, "cities.xlsx")
 OUTPUT_FILE = os.path.join(DATA_PATH, "queries.json")
