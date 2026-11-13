@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Data
+.csv
+.xlsx
+.xls
+.parquet
+.json
