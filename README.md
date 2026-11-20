@@ -10,9 +10,9 @@
 | `src/etl/validate.py` | Проверка данных перед записью |
 | `src/etl/load.py` | Транзакционная запись выборки в SQLite |
 | `src/etl/main.py` | Аргументы командной строки и запуск полного цикла |
+| `scripts/write_to_db.py` | Запись 100 строк датасета в удалённую базу курса |
 | `scripts/` | Исходные скрипты сбора публикаций и подготовки данных для EDA |
 | `notebooks/EDA.ipynb` | Разведывательный анализ данных |
-| `docs/` | Описание исследования, источника и схемы датасета |
 | `pyproject.toml` и `requirements.txt` | Настройки пакета и установка зависимостей |
 
 ## Запуск ETL
@@ -26,7 +26,7 @@ python -m pip install -r requirements.txt
 python -m etl.main --database db.sqlite3
 ```
 
-Обязательный аргумент `--database` задаёт путь к файлу SQLite. SQLite входит в стандартную библиотеку Python. По умолчанию ETL скачивает [CSV проекта](docs/methods.md) с Google Drive. Другой источник можно указать аргументом `--source` или переменной `DATASET_URL` в окружении либо в файле `.env`. Аргумент командной строки имеет приоритет.
+Обязательный аргумент `--database` задаёт путь к файлу SQLite. SQLite входит в стандартную библиотеку Python. По умолчанию ETL скачивает [CSV проекта](https://drive.google.com/uc?export=download&id=1YPNkX6ElmOaTOVze2l-uAtU4jS1q5ZHX) с Google Drive. Другой источник можно указать аргументом `--source` или переменной `DATASET_URL` в окружении либо в файле `.env`. Аргумент командной строки имеет приоритет.
 
 ```bash
 python -m etl.main --database db.sqlite3 --source data/VK_dataset.csv --limit 50
@@ -39,6 +39,30 @@ ETL принимает CSV в UTF-8 с разделителем-запятой �
 ```bash
 python -c "import sqlite3; print(sqlite3.connect('db.sqlite3').execute('SELECT COUNT(*) FROM vk_posts').fetchone()[0])"
 ```
+
+## Запись в удалённую базу курса
+
+Из корня репозитория установите пакет с дополнительными зависимостями для работы с удалённой базой:
+
+```bash
+python -m pip install -e ".[remote-db]"
+```
+
+Откройте выданный файл доступа локально в просмотрщике SQLite и выберите в таблице `access` запись для нужной базы. Перенесите параметры из этой записи в локальный `.env` в корне проекта. Скрипт читает `DB_ENGINE` (`postgresql` или `mysql`), `DB_HOST`, `DB_PORT`, `DB_USER` и `DB_PASSWORD`. Файл доступа и `.env` должны оставаться локальными.
+
+Для пробного запуска используйте параметры доступа к `freezone`:
+
+```bash
+python scripts/write_to_db.py --target freezone
+```
+
+Для сдачи подставьте в локальный `.env` параметры доступа к `homeworks` и выполните:
+
+```bash
+python scripts/write_to_db.py --target homeworks
+```
+
+По умолчанию скрипт читает CSV проекта. Если вы уже скачали его, добавьте `--source data/VK_dataset.csv`. Скрипт использует этапы подготовки и валидации из `etl`, сохраняет первые 100 строк в таблицу `akinshinsd` и проверяет их количество перед фиксацией транзакции. При повторном запуске он заменяет содержимое этой таблицы.
 
 ## Сбор данных и EDA
 
