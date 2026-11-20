@@ -151,6 +151,9 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+creds.db
+creds.db-*
 .envrc
 .venv
 env/
@@ -225,3 +228,4 @@ __marimo__/
 *.xls
 *.parquet
 data/*.json
+data/*.db

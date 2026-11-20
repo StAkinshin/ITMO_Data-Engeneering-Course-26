@@ -9,10 +9,9 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from vk_api.exceptions import ApiError, VkApiError
 
-
-# ============================================================
+# ======================================================================================
 # НАСТРОЙКИ
-# ============================================================
+# ======================================================================================
 
 load_dotenv()
 
@@ -43,23 +42,20 @@ COLUMNS = [
     "date",
     "author_link",
     "link",
-    "text"
+    "text",
 ]
 
 
-# ============================================================
+# ======================================================================================
 # ЛОГИРОВАНИЕ
-# ============================================================
+# ======================================================================================
 
 os.makedirs(DATA_PATH, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding="utf-8"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.FileHandler(LOG_FILE, encoding="utf-8"), logging.StreamHandler()],
 )
 
 logger = logging.getLogger(__name__)
@@ -69,21 +65,18 @@ logger = logging.getLogger(__name__)
 # ПОДГОТОВКА ЗАПРОСОВ
 # ============================================================
 
+
 def load_queries():
     """Загружает поисковые запросы из JSON."""
 
     if not os.path.exists(INPUT_FILENAME):
-        raise FileNotFoundError(
-            f"Не найден файл с запросами: {INPUT_FILENAME}"
-        )
+        raise FileNotFoundError(f"Не найден файл с запросами: {INPUT_FILENAME}")
 
     with open(INPUT_FILENAME, "r", encoding="utf-8") as file:
         data = json.load(file)
 
     if not isinstance(data, list):
-        raise ValueError(
-            "JSON должен содержать список запросов."
-        )
+        raise ValueError("JSON должен содержать список запросов.")
 
     queries = []
 
@@ -97,34 +90,28 @@ def load_queries():
             continue
 
         if query and str(query).strip():
-            queries.append({
-                "query": str(query).strip(),
-                "city": city,
-                "region": region
-            })
+            queries.append(
+                {"query": str(query).strip(), "city": city, "region": region}
+            )
 
     if not queries:
-        raise ValueError(
-            "Список запросов пуст. Проверьте queries.json."
-        )
+        raise ValueError("Список запросов пуст. Проверьте queries.json.")
 
     logger.info(f"Загружено поисковых запросов: {len(queries)}")
 
     return queries
 
 
-# ============================================================
+# ======================================================================================
 # ПОДКЛЮЧЕНИЕ К VK API
-# ============================================================
+# ======================================================================================
+
 
 def connect_vk():
     logger.info("Подключение к VK API...")
 
     try:
-        session = vk_api.VkApi(
-            token=VK_TOKEN,
-            api_version="5.199"
-        )
+        session = vk_api.VkApi(token=VK_TOKEN, api_version="5.199")
 
         vk = session.get_api()
 
@@ -136,9 +123,10 @@ def connect_vk():
         raise
 
 
-# ============================================================
+# =======================================================================================
 # ФОРМАТИРОВАНИЕ ПОСТА
-# ============================================================
+# ======================================================================================
+
 
 def format_post(post, query, city, region):
     """Приводит пост к формату датасета."""
@@ -160,18 +148,17 @@ def format_post(post, query, city, region):
         "city": city,
         "region": region,
         "source_type": "newsfeed",
-        "date": datetime.fromtimestamp(
-            post["date"]
-        ).strftime("%Y-%m-%d"),
+        "date": datetime.fromtimestamp(post["date"]).strftime("%Y-%m-%d"),
         "author_link": author_link,
         "link": f"https://vk.com/wall{owner_id}_{post_id}",
-        "text": post.get("text", "").replace("\n", " ")[:5000]
+        "text": post.get("text", "").replace("\n", " ")[:5000],
     }
 
 
-# ============================================================
+# ======================================================================================
 # ПОИСК ПОСТОВ
-# ============================================================
+# ======================================================================================
+
 
 def search_posts(vk, query, city, region, limit_date):
     """Ищет посты и подробно логирует процесс."""
@@ -187,7 +174,7 @@ def search_posts(vk, query, city, region, limit_date):
         "old_posts": 0,
         "empty_text": 0,
         "duplicates": 0,
-        "accepted": 0
+        "accepted": 0,
     }
 
     logger.info("=" * 60)
@@ -203,24 +190,18 @@ def search_posts(vk, query, city, region, limit_date):
                 "count": REQUEST_COUNT,
                 "extended": 1,
                 "start_time": int(limit_date.timestamp()),
-                "end_time": int(datetime.now().timestamp())
+                "end_time": int(datetime.now().timestamp()),
             }
 
             if start_from:
                 params["start_from"] = start_from
 
-            logger.info(
-                f"Запрос страницы {page}. "
-                f"Получено ранее: {len(results)}"
-            )
+            logger.info(f"Запрос страницы {page}. " f"Получено ранее: {len(results)}")
 
             response = vk.newsfeed.search(**params)
 
             if not isinstance(response, dict):
-                logger.error(
-                    f"Неожиданный формат ответа VK: "
-                    f"{type(response)}"
-                )
+                logger.error(f"Неожиданный формат ответа VK: " f"{type(response)}")
                 break
 
             items = response.get("items", [])
@@ -232,10 +213,7 @@ def search_posts(vk, query, city, region, limit_date):
             )
 
             if not items:
-                logger.warning(
-                    "VK вернул пустой список постов. "
-                    "Поиск завершён."
-                )
+                logger.warning("VK вернул пустой список постов. " "Поиск завершён.")
                 break
 
             stats["received"] += len(items)
@@ -247,9 +225,7 @@ def search_posts(vk, query, city, region, limit_date):
                     stats["old_posts"] += 1
                     continue
 
-                post_data = format_post(
-                    post, query, city, region
-                )
+                post_data = format_post(post, query, city, region)
 
                 if post_data is None:
                     continue
@@ -275,10 +251,7 @@ def search_posts(vk, query, city, region, limit_date):
             next_from = response.get("next_from")
 
             if not next_from or next_from == start_from:
-                logger.info(
-                    "VK не вернул новый next_from. "
-                    "Дальнейших страниц нет."
-                )
+                logger.info("VK не вернул новый next_from. " "Дальнейших страниц нет.")
                 break
 
             start_from = next_from
@@ -295,16 +268,11 @@ def search_posts(vk, query, city, region, limit_date):
             break
 
         except VkApiError as error:
-            logger.exception(
-                f"ОШИБКА VK API | Запрос: {query}: {error}"
-            )
+            logger.exception(f"ОШИБКА VK API | Запрос: {query}: {error}")
             break
 
         except Exception as error:
-            logger.exception(
-                f"НЕОЖИДАННАЯ ОШИБКА | "
-                f"Запрос: {query}: {error}"
-            )
+            logger.exception(f"НЕОЖИДАННАЯ ОШИБКА | " f"Запрос: {query}: {error}")
             break
 
     logger.info("-" * 60)
@@ -316,9 +284,10 @@ def search_posts(vk, query, city, region, limit_date):
     return results
 
 
-# ============================================================
+# ======================================================================================
 # ОСНОВНАЯ ФУНКЦИЯ
-# ============================================================
+# ======================================================================================
+
 
 def main():
 
@@ -332,9 +301,7 @@ def main():
     except Exception as error:
         logger.critical(f"Не удалось начать сбор: {error}")
         return
-    limit_date = datetime.now() - timedelta(
-        days=DAYS_TO_CHECK
-    )
+    limit_date = datetime.now() - timedelta(days=DAYS_TO_CHECK)
     logger.info(
         f"Период сбора: с {limit_date.strftime('%Y-%m-%d')} "
         f"по {datetime.now().strftime('%Y-%m-%d')}"
@@ -347,16 +314,10 @@ def main():
         city = query_data["city"]
         region = query_data["region"]
 
-        logger.info(
-            f"\nЗАПРОС {index}/{len(queries)}"
-        )
+        logger.info(f"\nЗАПРОС {index}/{len(queries)}")
 
         posts = search_posts(
-            vk=vk,
-            query=query,
-            city=city,
-            region=region,
-            limit_date=limit_date
+            vk=vk, query=query, city=city, region=region, limit_date=limit_date
         )
 
         for post in posts:
@@ -365,69 +326,48 @@ def main():
                 all_posts.append(post)
                 seen_links.add(post["link"])
 
-        logger.info(
-            f"Итого по запросу '{query}': {len(posts)}"
-        )
+        logger.info(f"Итого по запросу '{query}': {len(posts)}")
 
         time.sleep(1)
 
-    # ========================================================
+    # ======================================================================================
     # СОХРАНЕНИЕ ДАТАСЕТА
-    # ========================================================
+    # ======================================================================================
 
     logger.info("=" * 60)
     logger.info("СОХРАНЕНИЕ РЕЗУЛЬТАТОВ")
     logger.info("=" * 60)
 
-    df = pd.DataFrame(
-        all_posts,
-        columns=COLUMNS
-    )
+    df = pd.DataFrame(all_posts, columns=COLUMNS)
 
     try:
-        df.to_csv(
-            OUTPUT_FILE,
-            index=False,
-            encoding="utf-8-sig"
-        )
+        df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
 
         logger.info(f"Всего собрано постов: {len(df)}")
         logger.info(f"Файл сохранён: {OUTPUT_FILE}")
 
         if df.empty:
-            logger.warning(
-                "ДАТАСЕТ ПУСТОЙ! "
-                "Проверьте ошибки выше в логе."
-            )
+            logger.warning("ДАТАСЕТ ПУСТОЙ! " "Проверьте ошибки выше в логе.")
 
         else:
-            logger.info(
-                f"Уникальных запросов: "
-                f"{df['search_query'].nunique()}"
-            )
+            logger.info(f"Уникальных запросов: " f"{df['search_query'].nunique()}")
 
-            logger.info(
-                f"Диапазон дат: "
-                f"{df['date'].min()} — {df['date'].max()}"
-            )
+            logger.info(f"Диапазон дат: " f"{df['date'].min()} — {df['date'].max()}")
 
             logger.info("\nПервые 5 строк датасета:")
             logger.info("\n" + df.head().to_string())
 
     except Exception as error:
-        logger.exception(
-            f"Ошибка сохранения CSV: {error}"
-        )
+        logger.exception(f"Ошибка сохранения CSV: {error}")
 
     logger.info("=" * 60)
     logger.info("РАБОТА ПАРСЕРА ЗАВЕРШЕНА")
     logger.info("=" * 60)
 
 
-# ============================================================
+# ======================================================================================
 # ЗАПУСК
-# ============================================================
+# ======================================================================================
 
 if __name__ == "__main__":
     main()
-    
