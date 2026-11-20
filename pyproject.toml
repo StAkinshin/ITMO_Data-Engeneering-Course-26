@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itmo-vk-etl"
+version = "0.1.0"
+description = "ETL for the ITMO course VK publication dataset"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2.3,<3.1",
+    "python-dotenv>=1.2.1,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "vk_api==11.10.0",
+    "pyarrow==23.0.1",
+    "openpyxl==3.1.5",
+    "matplotlib==3.10.8",
+    "seaborn",
+    "plotly",
+    "requests",
+    "ipywidgets",
+    "jupyterlab",
+]
+
+[project.scripts]
+vk-etl = "etl.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
